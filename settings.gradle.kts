@@ -10,7 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = java.net.URI("https://jitpack.io") }
     }
 }
-rootProject.name = "AppCloner"
+rootProject.name = "AppClonerFOSS"
 include(":app")
