@@ -7,7 +7,6 @@ import android.os.Build
 import com.foss.appcloner.db.AppDatabase
 
 class AppClonerApp : Application() {
-
     val database: AppDatabase by lazy { AppDatabase.getInstance(this) }
 
     override fun onCreate() {
@@ -18,22 +17,8 @@ class AppClonerApp : Application() {
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
-
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_CLONING,
-                    getString(R.string.channel_cloning),
-                    NotificationManager.IMPORTANCE_LOW
-                ).apply { description = getString(R.string.channel_cloning_desc) }
-            )
-
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_IDENTITY,
-                    getString(R.string.channel_identity),
-                    NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = getString(R.string.channel_identity_desc) }
-            )
+            nm.createNotificationChannel(NotificationChannel(CHANNEL_CLONING, getString(R.string.channel_cloning), NotificationManager.IMPORTANCE_LOW))
+            nm.createNotificationChannel(NotificationChannel(CHANNEL_IDENTITY, getString(R.string.channel_identity), NotificationManager.IMPORTANCE_DEFAULT))
         }
     }
 
