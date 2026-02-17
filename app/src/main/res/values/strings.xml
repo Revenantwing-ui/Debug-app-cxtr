@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">AppCloner</string>
+    <string name="tab_apps">Apps</string>
+    <string name="tab_clones">Clones</string>
+    <string name="channel_cloning">Cloning Progress</string>
+    <string name="channel_cloning_desc">Shows progress while cloning an app</string>
+    <string name="channel_identity">Identity Updates</string>
+    <string name="channel_identity_desc">Notifications for identity refresh actions</string>
+    <string name="cloning_in_progress">Cloning in progress…</string>
+    <string name="new_identity">New Identity</string>
+    <string name="new_identity_desc">Randomize all device identifiers for this clone</string>
+    <string name="enable_new_identity">Enable New Identity</string>
+    <string name="show_notification">Show notification (tap to generate new identity)</string>
+    <string name="auto_restart">Auto-restart app after identity change</string>
+    <string name="clear_cache">Clear cache on identity change</string>
+    <string name="delete_app_data">Delete app data on identity change</string>
+    <string name="clone_name">Clone name</string>
+    <string name="clone_package">Clone package name</string>
+    <string name="btn_clone">Clone App</string>
+    <string name="btn_refresh_identity">Regenerate</string>
+    <string name="btn_new_identity">New Identity</string>
+    <string name="btn_view_identity">View Identity</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_copy">Copy JSON</string>
+    <string name="identity_summary_label">Identity Preview</string>
+    <string name="no_clones">No clones yet.\nGo to Apps tab to clone an app.</string>
+    <string name="installed">Installed</string>
+    <string name="search_hint">Search apps…</string>
+    <string name="randomize_build_props">Randomize build props</string>
+    <string name="fake_battery">Fake battery level and temperature</string>
+    <string name="trust_all_certificates">Trust all SSL certificates</string>
+</resources>
