@@ -26,13 +26,14 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
+      # This installs Gradle directly, fixing the "missing wrapper jar" error
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
       - name: Build Debug APK
-        # We use 'gradle' directly instead of './gradlew' to avoid missing jar issues
+        # Use 'gradle' instead of './gradlew'
         run: gradle assembleDebug --stacktrace
 
       - name: Upload Debug APK
