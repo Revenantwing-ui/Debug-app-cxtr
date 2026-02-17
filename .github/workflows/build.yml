@@ -25,13 +25,15 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        # We use 'gradle' directly instead of './gradlew' to avoid missing jar issues
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -53,7 +55,11 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
 
       - name: Decode Keystore
         if: env.KEYSTORE_BASE64 != ''
@@ -65,8 +71,6 @@ jobs:
 
       - name: Generate debug keystore (if no release keystore)
         if: env.KEYSTORE_BASE64 == ''
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           mkdir -p app/keystore
           keytool -genkeypair -v \
@@ -78,15 +82,12 @@ jobs:
             -keypass android \
             -dname "CN=AppCloner, OU=FOSS, O=FOSS, L=Unknown, S=Unknown, C=US"
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Build Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'key0' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android' }}
-        run: ./gradlew assembleRelease --stacktrace
+        run: gradle assembleRelease --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -112,10 +113,15 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: gradle
-      - run: chmod +x gradlew
+      
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+
       - name: Run Lint
-        run: ./gradlew lint
+        run: gradle lint
+
       - name: Upload Lint results
         uses: actions/upload-artifact@v4
         if: always()
