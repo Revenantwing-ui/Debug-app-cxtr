@@ -1,0 +1,14 @@
+-keepclassmembers class com.foss.appcloner.model.** { *; }
+-keep class com.foss.appcloner.model.** { *; }
+-keep class com.foss.appcloner.db.** { *; }
+-keep class org.jf.dexlib2.** { *; }
+-keep class org.jf.util.** { *; }
+-keep class com.google.common.** { *; }
+-keep class org.bouncycastle.** { *; }
+-dontwarn org.bouncycastle.**
+-keep class org.apache.commons.** { *; }
+-dontwarn org.apache.commons.**
+-keep class org.jf.smali.** { *; }
+-dontwarn org.jf.smali.**
+-dontwarn javax.annotation.**
+-dontwarn com.google.errorprone.**
