@@ -1,0 +1,40 @@
+package com.foss.appcloner.model
+
+import com.google.gson.annotations.SerializedName
+
+data class Identity(
+    @SerializedName("androidId")             val androidId: String             = "",
+    @SerializedName("serial")                val serial: String                = "",
+    @SerializedName("imei")                  val imei: String                  = "",
+    @SerializedName("imsi")                  val imsi: String                  = "",
+    @SerializedName("wifiMacAddress")        val wifiMacAddress: String        = "",
+    @SerializedName("bluetoothMacAddress")   val bluetoothMacAddress: String   = "",
+    @SerializedName("ethernetMacAddress")    val ethernetMacAddress: String    = "",
+    @SerializedName("googleGsfId")           val googleGsfId: String           = "",
+    @SerializedName("googleAdvertisingId")   val googleAdvertisingId: String   = "",
+    @SerializedName("facebookAttributionId") val facebookAttributionId: String = "",
+    @SerializedName("amazonAdvertisingId")   val amazonAdvertisingId: String   = "",
+    @SerializedName("appSetId")              val appSetId: String              = "",
+    @SerializedName("manufacturer")          val manufacturer: String          = "",
+    @SerializedName("brand")                 val brand: String                 = "",
+    @SerializedName("model")                 val model: String                 = "",
+    @SerializedName("product")               val product: String               = "",
+    @SerializedName("device")                val device: String                = "",
+    @SerializedName("board")                 val board: String                 = "",
+    @SerializedName("hardware")              val hardware: String              = "",
+    @SerializedName("bootloader")            val bootloader: String            = "",
+    @SerializedName("fingerprint")           val fingerprint: String           = "",
+    @SerializedName("buildId")               val buildId: String               = "",
+    @SerializedName("osVersion")             val osVersion: String             = "",
+    @SerializedName("webViewUserAgent")      val webViewUserAgent: String      = "",
+    @SerializedName("systemUserAgent")       val systemUserAgent: String       = "",
+    @SerializedName("batteryLevel")          val batteryLevel: Int             = 50,
+    @SerializedName("batteryTemperature")    val batteryTemperature: Float     = 25.0f,
+    @SerializedName("installTime")           val installTime: Long             = 0L,
+    @SerializedName("updateTime")            val updateTime: Long              = 0L,
+    @SerializedName("userCreationTime")      val userCreationTime: Long        = 0L,
+    @SerializedName("hideWifiInfo")          val hideWifiInfo: Boolean         = false,
+    @SerializedName("hideSimInfo")           val hideSimInfo: Boolean          = false,
+    @SerializedName("hideDnsServers")        val hideDnsServers: Boolean       = false,
+    @SerializedName("hideCpuInfo")           val hideCpuInfo: Boolean          = false
+)
