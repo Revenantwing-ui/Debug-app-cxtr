@@ -29,4 +29,9 @@
     <string name="randomize_build_props">Randomize build props</string>
     <string name="fake_battery">Fake battery level and temperature</string>
     <string name="trust_all_certificates">Trust all SSL certificates</string>
+
+    <string name="clone_options_title">Clone %1$s</string>
+    <string name="starting_service">Starting cloning service…</string>
+    <string name="clone_success">Clone created! Installing…</string>
+    <string name="clone_error">Cloning failed: %1$s</string>
 </resources>
