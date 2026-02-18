@@ -9,14 +9,14 @@ import java.nio.ByteOrder
  * binary content of AndroidManifest.xml inside an APK.
  *
  * The AXML format is:
- *   - 8-byte file header  (type=0x0003, header_size=0x0008, file_size)
- *   - StringPool chunk    (type=0x0001)
- *   - XML event chunks    (start namespace, start element, attribute, end element…)
+ * - 8-byte file header  (type=0x0003, header_size=0x0008, file_size)
+ * - StringPool chunk    (type=0x0001)
+ * - XML event chunks    (start namespace, start element, attribute, end element…)
  *
  * We focus on two mutations needed for cloning:
- *   1. Replacing the "package" attribute in the manifest element
- *   2. Replacing authority strings in <provider> elements
- *   3. Injecting a BroadcastReceiver element for identity updates
+ * 1. Replacing the "package" attribute in the manifest element
+ * 2. Replacing authority strings in <provider> elements
+ * 3. Injecting a BroadcastReceiver element for identity updates
  *
  * String replacement works by finding the target string in the StringPool
  * and rewriting it (expanding/shrinking the pool as needed).
@@ -143,7 +143,13 @@ object BinaryXmlModifier {
         spW(CHUNK_STRING_POOL)
         spW(paddedSpSize)
         spW(strCount)
-        spW(styleCount)
+        
+        // CRITICAL FIX: Force styleCount to 0. 
+        // Since we are not writing any style data (spW(0) for styleStart below),
+        // we must tell the parser there are no styles. Passing the original styleCount
+        // while stripping the data causes "INSTALL_PARSE_FAILED_BAD_MANIFEST".
+        spW(0) 
+        
         spW(flags)
         spW(newStrStart)
         spW(0) // styleStart = 0 (no styles)
