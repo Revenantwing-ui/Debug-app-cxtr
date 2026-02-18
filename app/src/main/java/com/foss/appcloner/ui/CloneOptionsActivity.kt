@@ -174,4 +174,6 @@ class CloneOptionsActivity : AppCompatActivity() {
     override fun onDestroy() {
         if (serviceBound) {
             unbindService(connection)
-            serviceBound
+            serviceBound = false
+        }
+    }
