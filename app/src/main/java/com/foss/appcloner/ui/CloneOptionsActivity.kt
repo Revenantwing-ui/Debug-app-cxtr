@@ -177,3 +177,4 @@ class CloneOptionsActivity : AppCompatActivity() {
             serviceBound = false
         }
     }
+}
