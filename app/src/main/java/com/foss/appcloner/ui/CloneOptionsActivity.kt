@@ -109,7 +109,7 @@ class CloneOptionsActivity : AppCompatActivity() {
                 cloneName        = binding.etCloneName.text.toString().ifBlank { appName },
                 clonePackageName = binding.etClonePackage.text.toString().ifBlank { clonePackage }
             )
-            startCloning(apkPath, finalConfig)
+            startCloning(apkPath, finalConfig) CloningConsoleDialog().show(supportFragmentManager, CloningConsoleDialog.TAG)
         }
     }
 
