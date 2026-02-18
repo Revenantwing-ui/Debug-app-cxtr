@@ -63,7 +63,10 @@ android {
                 "META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*",
                 "META-INF/*.kotlin_module", "META-INF/versions/**",
                 "META-INF/services/javax.annotation.processing.Processor",
-                "google/protobuf/*.proto"
+                "google/protobuf/*.proto",
+                // EXCLUDE GUAVA METADATA TO PREVENT MERGE ERRORS
+                "META-INF/guava_build_version.properties",
+                "META-INF/com.google.guava_guava.version"
             )
         }
     }
@@ -71,13 +74,18 @@ android {
     lint { abortOnError = false }
 }
 
-// Force a single Guava variant (Android)
+// --- THE GUAVA FIX ---
 configurations.all {
     resolutionStrategy.eachDependency {
-        if (requested.group == "com.google.guava") {
+        // 1. Force Guava to use the Android variant
+        if (requested.group == "com.google.guava" && requested.name == "guava") {
             useVersion("32.1.3-android")
-            // FIXED: SYNTAX ERROR REMOVED (Single line string)
-            because("smali pulls in jre variant; we need android variant") 
+            because("Force Android variant to avoid JRE conflicts")
+        }
+        // 2. Force ListenableFuture to use the empty version (This fixes the duplicate class error)
+        if (requested.group == "com.google.guava" && requested.name == "listenablefuture") {
+            useVersion("9999.0-empty-to-avoid-conflict-with-guava")
+            because("Use Guava's built-in ListenableFuture to avoid duplication")
         }
     }
 }
@@ -105,11 +113,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // --- DEX TOOLS ---
+    // Exclude Guava from these to prevent it from pulling in the JRE version
     implementation("org.smali:dexlib2:2.5.2") { exclude(group = "com.google.guava") }
     implementation("org.smali:smali:2.5.2")   { exclude(group = "com.google.guava") }
     implementation("org.smali:baksmali:2.5.2") { exclude(group = "com.google.guava") }
     
-    // Explicit Guava (Android variant)
+    // Explicitly add the correct Guava version
     implementation("com.google.guava:guava:32.1.3-android")
 
     // --- APK SIGNING ---
