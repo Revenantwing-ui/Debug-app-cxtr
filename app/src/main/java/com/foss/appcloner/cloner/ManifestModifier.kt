@@ -7,9 +7,9 @@ import com.foss.appcloner.util.BinaryXmlModifier
  * can be installed alongside the original app without conflicts.
  *
  * Operations:
- *   - Replace source package name with clone package name (all occurrences)
- *   - Replace all ContentProvider authorities that start with source package
- *   - Add android:sharedUserId if requested
+ * - Replace source package name with clone package name (all occurrences)
+ * - Replace all ContentProvider authorities that start with source package
+ * - Add android:sharedUserId if requested
  */
 object ManifestModifier {
 
@@ -27,14 +27,19 @@ object ManifestModifier {
         // Build a replacement map: any string equal to the source package → clone package
         // Also handle authority strings like "com.example.app.provider" → "com.example.app.clone1.provider"
         val replacements = buildReplacementMap(manifestBytes, sourcePackage, clonePackage)
+        
+        // NOTE: Receiver injection for IdentityReceiver is currently missing.
+        // The clone will install and work with its initial randomized identity, 
+        // but "Live Identity Refresh" broadcasts will not be received by the clone.
+        
         return BinaryXmlModifier.replaceStrings(manifestBytes, replacements)
     }
 
     /**
      * Scan the string pool to find all strings that should be replaced.
      * We replace:
-     *   - Exact package name matches
-     *   - Strings that start with sourcePackage (e.g. authorities, component names)
+     * - Exact package name matches
+     * - Strings that start with sourcePackage (e.g. authorities, component names)
      *
      * We preserve the basic string pool structure; strings that are longer or shorter
      * than their replacement cause the pool to be rebuilt by [BinaryXmlModifier].
