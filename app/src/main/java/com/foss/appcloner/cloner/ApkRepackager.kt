@@ -17,7 +17,6 @@ class ApkRepackager(private val context: Context) {
         // 1. Setup Working Directory (With safety checks)
         val workDir = File(context.cacheDir, "clone_work_${System.currentTimeMillis()}")
         
-        // delete if exists to ensure clean state
         if (workDir.exists()) workDir.deleteRecursively()
         
         if (!workDir.mkdirs()) {
@@ -43,11 +42,11 @@ class ApkRepackager(private val context: Context) {
 
             progressCallback?.invoke("Building identity hooks…", 30)
             
-            // Verify Assets exist before proceeding
+            // Verify Assets exist before proceeding (Common crash source)
             try {
                 context.assets.open("hooks/Hooks.smali").close()
             } catch (e: Exception) {
-                throw IOException("Asset missing: hooks/Hooks.smali. Re-check project structure.")
+                throw IOException("Asset missing: hooks/Hooks.smali. Ensure 'app/src/main/assets/hooks/' exists and contains the smali files.")
             }
 
             val identityJson = gson.toJson(config.identity)
@@ -59,7 +58,6 @@ class ApkRepackager(private val context: Context) {
             val patchedDexMap = DexPatcher.patchDexFiles(extractDir, identityJson)
 
             progressCallback?.invoke("Merging hook into DEX…", 65)
-            // If classes.dex wasn't patched, use the original extracted one
             val baseDexBytes = patchedDexMap["classes.dex"] ?: File(extractDir, "classes.dex").readBytes()
             val mergedClasses = mergeDex(baseDexBytes, hookDex)
 
@@ -80,7 +78,7 @@ class ApkRepackager(private val context: Context) {
 
             val signedApk = File(clonesDir, "${config.clonePackageName}.apk")
             
-            // Call the V2-compatible signer
+            // Call the robust ApkSigner
             ApkSigner.sign(context, unsignedApk, signedApk)
 
             progressCallback?.invoke("Done!", 100)
@@ -112,7 +110,6 @@ class ApkRepackager(private val context: Context) {
         }
         
         val out = File.createTempFile("merged", ".dex")
-        // Fix: Use FileDataStore
         pool.writeTo(FileDataStore(out))
         return out.readBytes().also { out.delete() }
     }
