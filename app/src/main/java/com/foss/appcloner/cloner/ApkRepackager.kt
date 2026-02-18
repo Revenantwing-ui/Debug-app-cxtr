@@ -64,12 +64,20 @@ class ApkRepackager(private val context: Context) {
         val opcodes = org.jf.dexlib2.Opcodes.forApi(34)
         val existing = org.jf.dexlib2.dexbacked.DexBackedDexFile.fromInputStream(opcodes, existingDex.inputStream())
         val hook = org.jf.dexlib2.dexbacked.DexBackedDexFile.fromInputStream(opcodes, hookDex.inputStream())
+        
         val pool = org.jf.dexlib2.writer.pool.DexPool(opcodes)
         val existingTypes = existing.classes.map { it.type }.toSet()
+        
+        // Add all existing classes
         for (cls in existing.classes) pool.internClass(cls)
-        for (cls in hook.classes) { if (cls.type !in existingTypes) pool.internClass(cls) }
+        
+        // Add hook classes (skip if already defined)
+        for (cls in hook.classes) { 
+            if (cls.type !in existingTypes) pool.internClass(cls) 
+        }
+        
         val out = File.createTempFile("merged", ".dex")
-        // Fix: Use FileDataStore for writing the pool
+        // Use FileDataStore to write the pool to disk
         pool.writeTo(FileDataStore(out))
         return out.readBytes().also { out.delete() }
     }
