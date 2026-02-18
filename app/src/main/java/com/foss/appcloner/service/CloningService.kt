@@ -19,22 +19,15 @@ import com.google.gson.Gson
 import kotlinx.coroutines.*
 
 class CloningService : Service() {
-
     private val binder = LocalBinder()
     private val scope   = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val nm get() = getSystemService(NotificationManager::class.java)
     private val gson = Gson()
 
-    inner class LocalBinder : Binder() {
-        fun getService() = this@CloningService
-    }
+    inner class LocalBinder : Binder() { fun getService() = this@CloningService }
 
     override fun onBind(intent: Intent?): IBinder = binder
-
-    override fun onCreate() {
-        super.onCreate()
-        startForeground(NOTIF_ID, buildNotification("Starting…", 0))
-    }
+    override fun onCreate() { super.onCreate(); startForeground(NOTIF_ID, buildNotification("Starting...", 0)) }
 
     fun cloneApp(sourceApkPath: String, config: CloneConfig, onComplete: (Boolean, String) -> Unit) {
         scope.launch {
@@ -43,8 +36,8 @@ class CloningService : Service() {
                 val result = repackager.repackage(sourceApkPath, config) { step, pct ->
                     nm.notify(NOTIF_ID, buildNotification(step, pct))
                 }
-
-                // Save to database
+                
+                // Save to DB
                 val dao = AppDatabase.getInstance(applicationContext).cloneDao()
                 dao.insert(CloneEntity(
                     clonePackageName  = config.clonePackageName,
@@ -55,37 +48,29 @@ class CloningService : Service() {
                     configJson        = gson.toJson(config)
                 ))
 
-                // Trigger PackageInstaller
+                // Trigger Install
                 installApk(result.apkFile.absolutePath)
-
+                
                 withContext(Dispatchers.Main) { onComplete(true, result.apkFile.absolutePath) }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onComplete(false, e.message ?: "Unknown error") }
-            } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Show error in notification so user sees it even if app is closed
+                nm.notify(NOTIF_ID, buildErrorNotification(e.message ?: "Unknown error"))
+                withContext(Dispatchers.Main) { onComplete(false, e.message ?: "Unknown error") }
+                stopForeground(STOP_FOREGROUND_DETACH) 
+            } finally {
                 stopSelf()
             }
         }
     }
 
     private fun installApk(apkPath: String) {
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                android.net.Uri.parse("file://$apkPath"),
-                "application/vnd.android.package-archive"
-            )
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-        }
-        // Use PackageInstaller session API (Android 14 compatible)
         PackageInstallHelper.installApk(applicationContext, java.io.File(apkPath))
     }
 
     private fun buildNotification(step: String, pct: Int): Notification {
-        val pi = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
+        val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, AppClonerApp.CHANNEL_CLONING)
             .setSmallIcon(R.drawable.ic_cloning)
             .setContentTitle(getString(R.string.cloning_in_progress))
@@ -96,12 +81,16 @@ class CloningService : Service() {
             .build()
     }
 
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
+    private fun buildErrorNotification(error: String): Notification {
+        return NotificationCompat.Builder(this, AppClonerApp.CHANNEL_CLONING)
+            .setSmallIcon(R.drawable.ic_cloning)
+            .setContentTitle("Cloning Failed")
+            .setContentText(error)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(error))
+            .setAutoCancel(true)
+            .build()
     }
 
-    companion object {
-        private const val NOTIF_ID = 1001
-    }
+    override fun onDestroy() { scope.cancel(); super.onDestroy() }
+    companion object { private const val NOTIF_ID = 1001 }
 }
