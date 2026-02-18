@@ -125,14 +125,3 @@ class CloneOptionsActivity : AppCompatActivity() {
      *
      * New approach: queue the work in [pendingClone].  If the service is
      * already connected, run immediately.  Otherwise onServiceConnected()
-     * will drain the queue as soon as binding completes.
-     */
-    private fun startCloning(apkPath: String, config: CloneConfig) {
-        binding.btnClone.isEnabled = false
-        binding.progressGroup.visibility = View.VISIBLE
-        binding.tvProgress.text = getString(R.string.starting_service)
-
-        val serviceIntent = Intent(this, CloningService::class   
-    }
-}
-                                   
