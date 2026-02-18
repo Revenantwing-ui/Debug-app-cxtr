@@ -109,7 +109,9 @@ class CloneOptionsActivity : AppCompatActivity() {
                 cloneName        = binding.etCloneName.text.toString().ifBlank { appName },
                 clonePackageName = binding.etClonePackage.text.toString().ifBlank { clonePackage }
             )
-            startCloning(apkPath, finalConfig) CloningConsoleDialog().show(supportFragmentManager, CloningConsoleDialog.TAG)
+            // [FIX] Separated the start command and the dialog display
+            startCloning(apkPath, finalConfig)
+            CloningConsoleDialog().show(supportFragmentManager, CloningConsoleDialog.TAG)
         }
     }
 
@@ -130,59 +132,4 @@ class CloneOptionsActivity : AppCompatActivity() {
         binding.progressGroup.visibility = View.VISIBLE
         binding.tvProgress.text = getString(R.string.starting_service)
 
-        val serviceIntent = Intent(this, CloningService::class.java)
-
-        val doClone = {
-            val svc = cloningService
-            if (svc == null) {
-                // Should never happen after the fix, but surface it clearly
-                runOnUiThread {
-                    binding.btnClone.isEnabled = true
-                    Toast.makeText(this,
-                        "Service not ready — please try again", Toast.LENGTH_LONG).show()
-                }
-            } else {
-                svc.cloneApp(apkPath, config) { success, msg ->
-                    runOnUiThread {
-                        binding.btnClone.isEnabled = true
-                        binding.progressGroup.visibility = View.GONE
-                        Toast.makeText(this,
-                            if (success) getString(R.string.clone_success)
-                            else         getString(R.string.clone_error, msg),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        if (success) finish()
-                    }
-                }
-            }
-        }
-
-        if (cloningService != null) {
-            // Already bound from a previous click
-            doClone()
-        } else {
-            // Queue and start service
-            pendingClone = doClone
-            startForegroundService(serviceIntent)
-            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
-            serviceBound = true
-        }
-    }
-
-    override fun onDestroy() {
-        if (serviceBound) {
-            unbindService(connection)
-            serviceBound = false
-        }
-        super.onDestroy()
-    }
-
-    override fun onSupportNavigateUp() = true.also { finish() }
-
-    companion object {
-        private const val TAG           = "CloneOptionsActivity"
-        const val EXTRA_PACKAGE         = "extra_package"
-        const val EXTRA_APP_NAME        = "extra_app_name"
-        const val EXTRA_APK_PATH        = "extra_apk_path"
-    }
-}
+        val serviceIntent = Intent(this, CloningService::class
