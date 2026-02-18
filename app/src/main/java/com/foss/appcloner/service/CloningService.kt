@@ -17,27 +17,57 @@ import com.foss.appcloner.model.CloneConfig
 import com.foss.appcloner.ui.MainActivity
 import com.google.gson.Gson
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 
 class CloningService : Service() {
+
     private val binder = LocalBinder()
-    private val scope   = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val nm get() = getSystemService(NotificationManager::class.java)
     private val gson = Gson()
 
-    inner class LocalBinder : Binder() { fun getService() = this@CloningService }
+    inner class LocalBinder : Binder() {
+        fun getService() = this@CloningService
+    }
+
+    companion object {
+        private const val NOTIF_ID = 1001
+        
+        // Static flow for the Dialog to observe logs
+        private val _logFlow = MutableSharedFlow<String>(replay = 100)
+        val logFlow: SharedFlow<String> = _logFlow
+
+        fun log(msg: String) {
+            _logFlow.tryEmit(msg)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder = binder
-    override fun onCreate() { super.onCreate(); startForeground(NOTIF_ID, buildNotification("Starting...", 0)) }
+
+    override fun onCreate() {
+        super.onCreate()
+        startForeground(NOTIF_ID, buildNotification("Starting…", 0))
+    }
 
     fun cloneApp(sourceApkPath: String, config: CloneConfig, onComplete: (Boolean, String) -> Unit) {
+        // Clear previous logs
+        scope.launch { _logFlow.emit("--- New Cloning Session Started ---") }
+        
         scope.launch {
             try {
+                log("Initializing repackager...")
                 val repackager = ApkRepackager(applicationContext)
+                
+                // Pass a logging lambda to Repackager
                 val result = repackager.repackage(sourceApkPath, config) { step, pct ->
+                    // Log to terminal
+                    log("[$pct%] $step")
+                    // Update notification
                     nm.notify(NOTIF_ID, buildNotification(step, pct))
                 }
-                
-                // Save to DB
+
+                log("Saving to database...")
                 val dao = AppDatabase.getInstance(applicationContext).cloneDao()
                 dao.insert(CloneEntity(
                     clonePackageName  = config.clonePackageName,
@@ -48,18 +78,18 @@ class CloningService : Service() {
                     configJson        = gson.toJson(config)
                 ))
 
-                // Trigger Install
+                log("Installing APK...")
                 installApk(result.apkFile.absolutePath)
+
+                log("SUCCESS: Cloned app created at ${result.apkFile.absolutePath}")
                 
                 withContext(Dispatchers.Main) { onComplete(true, result.apkFile.absolutePath) }
-                stopForeground(STOP_FOREGROUND_REMOVE)
             } catch (e: Exception) {
+                log("ERROR: ${e.message}")
                 e.printStackTrace()
-                // Show error in notification so user sees it even if app is closed
-                nm.notify(NOTIF_ID, buildErrorNotification(e.message ?: "Unknown error"))
                 withContext(Dispatchers.Main) { onComplete(false, e.message ?: "Unknown error") }
-                stopForeground(STOP_FOREGROUND_DETACH) 
             } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }
@@ -70,7 +100,11 @@ class CloningService : Service() {
     }
 
     private fun buildNotification(step: String, pct: Int): Notification {
-        val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val pi = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
         return NotificationCompat.Builder(this, AppClonerApp.CHANNEL_CLONING)
             .setSmallIcon(R.drawable.ic_cloning)
             .setContentTitle(getString(R.string.cloning_in_progress))
@@ -81,16 +115,8 @@ class CloningService : Service() {
             .build()
     }
 
-    private fun buildErrorNotification(error: String): Notification {
-        return NotificationCompat.Builder(this, AppClonerApp.CHANNEL_CLONING)
-            .setSmallIcon(R.drawable.ic_cloning)
-            .setContentTitle("Cloning Failed")
-            .setContentText(error)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(error))
-            .setAutoCancel(true)
-            .build()
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
-
-    override fun onDestroy() { scope.cancel(); super.onDestroy() }
-    companion object { private const val NOTIF_ID = 1001 }
 }
