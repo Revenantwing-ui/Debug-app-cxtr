@@ -2,13 +2,11 @@
 # Reads and caches identity values for the cloned app.
 # The identity JSON is embedded at clone time via placeholder substitution,
 # and can also be refreshed at runtime via IdentityReceiver.
-
 .class public final Lcom/foss/hook/HookConfig;
 .super Ljava/lang/Object;
 
 # Static field holding the parsed identity JSON (set at clone-time or runtime)
 .field public static identity_json:Ljava/lang/String;
-
 # Individual cached values
 .field public static android_id:Ljava/lang/String;
 .field public static imei:Ljava/lang/String;
@@ -41,7 +39,6 @@
     # Embed identity JSON at clone time - this placeholder is replaced by HookInjector
     const-string v0, "%%IDENTITY_JSON%%"
     sput-object v0, Lcom/foss/hook/HookConfig;->identity_json:Ljava/lang/String;
-
     invoke-static {}, Lcom/foss/hook/HookConfig;->parseJson()V
 
     return-void
@@ -119,7 +116,8 @@
     return-void
 .end method
 
-# Extract value for key from JSON string.  Simple "key":"value" parser.
+# Extract value for key from JSON string.
+# Simple "key":"value" parser. <--- FIXED: Added hash to make this a comment
 .method public static extractValue(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     .registers 6
     .param p0, "json"
