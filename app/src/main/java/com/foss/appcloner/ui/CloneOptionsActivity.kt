@@ -132,4 +132,7 @@ class CloneOptionsActivity : AppCompatActivity() {
         binding.progressGroup.visibility = View.VISIBLE
         binding.tvProgress.text = getString(R.string.starting_service)
 
-        val serviceIntent = Intent(this, CloningService::class
+        val serviceIntent = Intent(this, CloningService::class   
+    }
+}
+                                   
