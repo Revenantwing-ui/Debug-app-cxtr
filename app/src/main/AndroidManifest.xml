@@ -2,17 +2,36 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+    <!-- Package queries (needed to list installed apps on API 30+) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- APK installation -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+
+    <!-- Storage for working directory -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
+    <!-- Foreground service for long clone operations -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Internet (for future remote features) -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Receive boot complete to restore identity receivers -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <permission android:name="com.foss.appcloner.permission.IDENTITY_UPDATE" android:protectionLevel="signature" />
+    <!-- Custom permission: only this app can send identity-update broadcasts -->
+    <permission
+        android:name="com.foss.appcloner.permission.IDENTITY_UPDATE"
+        android:protectionLevel="signature" />
     <uses-permission android:name="com.foss.appcloner.permission.IDENTITY_UPDATE" />
 
     <application
@@ -27,16 +46,30 @@
         android:theme="@style/Theme.AppCloner"
         tools:targetApi="31">
 
-        <activity android:name=".ui.MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+        <!-- Main activity -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.CloneOptionsActivity" android:exported="false" android:parentActivityName=".ui.MainActivity" />
-        <activity android:name=".ui.IdentityViewerActivity" android:exported="false" android:parentActivityName=".ui.MainActivity" />
+        <!-- Clone options / configuration screen -->
+        <activity
+            android:name=".ui.CloneOptionsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
 
+        <!-- Identity viewer -->
+        <activity
+            android:name=".ui.IdentityViewerActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- Content provider – serves identity values to cloned apps at runtime -->
         <provider
             android:name=".provider.IdentityProvider"
             android:authorities="com.foss.appcloner.identity"
@@ -44,12 +77,20 @@
             android:readPermission="android.permission.QUERY_ALL_PACKAGES"
             tools:ignore="GrantAllUris" />
 
-        <service android:name=".service.CloningService" android:exported="false" android:foregroundServiceType="dataSync" />
+        <!-- Cloning foreground service -->
+        <service
+            android:name=".service.CloningService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
-        <receiver android:name=".service.BootReceiver" android:exported="true">
+        <!-- Boot receiver – restores notification listeners for existing clones -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
     </application>
 </manifest>
