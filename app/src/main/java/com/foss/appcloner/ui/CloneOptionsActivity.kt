@@ -176,5 +176,15 @@ class CloneOptionsActivity : AppCompatActivity() {
             unbindService(connection)
             serviceBound = false
         }
+        super.onDestroy()
+    }
+
+    override fun onSupportNavigateUp() = true.also { finish() }
+
+    companion object {
+        private const val TAG           = "CloneOptionsActivity"
+        const val EXTRA_PACKAGE         = "extra_package"
+        const val EXTRA_APP_NAME        = "extra_app_name"
+        const val EXTRA_APK_PATH        = "extra_apk_path"
     }
 }
