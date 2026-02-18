@@ -6,6 +6,10 @@ import java.io.File
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 
+/**
+ * Signs the cloned APK using Google's official 'apksig' library.
+ * This ensures full V1 (JAR) and V2 (APK Scheme v2) compliance.
+ */
 object ApkSigner {
 
     private const val KEYSTORE_FILE = "appcloner_signing.p12"
@@ -15,7 +19,7 @@ object ApkSigner {
     fun sign(context: Context, unsignedApk: File, signedApk: File) {
         val (privateKey, cert) = getOrCreateSigningKey(context)
         
-        // Use Google's apksig library for V1 + V2 signing (Required for Android 11+)
+        // Use Google's apksig library for V1 + V2 signing
         val signer = com.android.apksig.ApkSigner.Builder(
             listOf(
                 com.android.apksig.ApkSigner.SignerConfig.Builder(
@@ -25,8 +29,9 @@ object ApkSigner {
                 ).build()
             )
         )
-        .setV1SigningEnabled(true)
-        .setV2SigningEnabled(true) // Crucial for Android 14
+        .setV1SigningEnabled(true)  // Forces JAR signing (META-INF/MANIFEST.MF)
+        .setV2SigningEnabled(true)  // Forces APK Signature Scheme v2 (Required for Android 11+)
+        .setMinSdkVersion(24)       // Ensures algorithms compatible with Android 7+ are used
         .setInputApk(unsignedApk)
         .setOutputApk(signedApk)
         .build()
