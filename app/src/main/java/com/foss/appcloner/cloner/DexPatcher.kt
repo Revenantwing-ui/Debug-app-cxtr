@@ -10,14 +10,18 @@ import org.jf.dexlib2.iface.reference.MethodReference
 import org.jf.dexlib2.immutable.*
 import org.jf.dexlib2.immutable.instruction.*
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference
+import org.jf.dexlib2.immutable.debug.ImmutableDebugItem
 import org.jf.dexlib2.Opcode
 import org.jf.dexlib2.writer.pool.DexPool
 import org.jf.dexlib2.writer.io.FileDataStore
 import java.io.File
 import com.google.common.collect.ImmutableList
+import com.google.common.collect.ImmutableSet
 
 object DexPatcher {
     private const val HOOK_CLASS = "Lcom/foss/hook/Hooks;"
+    
+    // Map of method descriptors to hook methods
     private val METHOD_HOOKS = mapOf(
         Triple("Landroid/provider/Settings\$Secure;", "getString", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;") to Pair("spoofSettingSecure", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;"),
         Triple("Landroid/telephony/TelephonyManager;", "getDeviceId", "()Ljava/lang/String;") to Pair("spoofImei", "(Landroid/telephony/TelephonyManager;)Ljava/lang/String;"),
@@ -44,69 +48,99 @@ object DexPatcher {
 
         for (classDef in dex.classes) {
             val patchedMethods = mutableListOf<ImmutableMethod>()
+
             for (method in classDef.methods) {
+                // Convert parameters and annotations to Immutable variants strictly
+                val immutableParams = ImmutableList.copyOf(method.parameters.map { ImmutableMethodParameter.of(it) })
+                val immutableAnnos  = ImmutableSet.copyOf(method.annotations.map { ImmutableAnnotation.of(it) })
+
                 val impl = method.implementation
                 if (impl == null) {
                     patchedMethods.add(ImmutableMethod(
                         method.definingClass, method.name, 
-                        ImmutableList.copyOf(method.parameters), 
+                        immutableParams, 
                         method.returnType, method.accessFlags, 
-                        ImmutableList.copyOf(method.annotations), 
+                        immutableAnnos, 
                         null, null
                     ))
                     continue
                 }
+
                 val mutableImpl = MutableMethodImplementation(impl)
                 var patched_flag = false
                 val instructionList = mutableImpl.instructions.toList()
+
                 for ((index, instr) in instructionList.withIndex()) {
                     if (instr !is ReferenceInstruction) continue
                     val ref = instr.reference
                     if (ref is MethodReference) {
                         val key = Triple(ref.definingClass, ref.name, "(${ref.parameterTypes.joinToString("")})${ref.returnType}")
                         val hookPair = METHOD_HOOKS[key] ?: continue
+
                         val hookRef = ImmutableMethodReference(HOOK_CLASS, hookPair.first, parseParams(hookPair.second), returnTypeFromDescriptor(hookPair.second))
+                        
                         if (instr is Instruction35c) {
-                            // Fix: Use BuilderInstruction35c
+                            // Use BuilderInstruction for the replacement within MutableMethodImplementation
                             val newInstr = BuilderInstruction35c(Opcode.INVOKE_STATIC, instr.registerCount, instr.registerC, instr.registerD, instr.registerE, instr.registerF, instr.registerG, hookRef)
                             mutableImpl.replaceInstruction(index, newInstr)
                             patched_flag = true
                         }
                     }
                 }
-                val finalImpl = if (patched_flag) mutableImpl else impl
-                
-                // Fix: Correct argument order and types for ImmutableMethod
+
+                // If patched, we must convert the Mutable instructions back to Immutable instructions
+                val finalInstructions = if (patched_flag) {
+                    ImmutableList.copyOf(mutableImpl.instructions.map { ImmutableInstruction.of(it) })
+                } else {
+                    ImmutableList.copyOf(impl.instructions.map { ImmutableInstruction.of(it) })
+                }
+
+                val finalTryBlocks = if (patched_flag) {
+                    ImmutableList.copyOf(mutableImpl.tryBlocks.map { ImmutableTryBlock.of(it) })
+                } else {
+                    ImmutableList.copyOf(impl.tryBlocks.map { ImmutableTryBlock.of(it) })
+                }
+
+                val finalDebugItems = if (patched_flag) {
+                    ImmutableList.copyOf(mutableImpl.debugItems.map { ImmutableDebugItem.of(it) })
+                } else {
+                    ImmutableList.copyOf(impl.debugItems.map { ImmutableDebugItem.of(it) })
+                }
+
                 patchedMethods.add(ImmutableMethod(
                     method.definingClass, 
                     method.name, 
-                    ImmutableList.copyOf(method.parameters), 
+                    immutableParams, 
                     method.returnType, 
                     method.accessFlags, 
-                    ImmutableList.copyOf(method.annotations), 
-                    null, // hiddenApiRestrictions comes BEFORE implementation
+                    immutableAnnos, 
+                    null, // hiddenApiRestrictions
                     ImmutableMethodImplementation(
-                        finalImpl.registerCount, 
-                        if (patched_flag) mutableImpl.instructions.map { ImmutableInstructionFactory.of(it) } 
-                        else impl.instructions.toList().map { ImmutableInstructionFactory.of(it) }, 
-                        emptyList(), 
-                        emptyList()
+                        if (patched_flag) mutableImpl.registerCount else impl.registerCount,
+                        finalInstructions,
+                        finalTryBlocks,
+                        finalDebugItems
                     )
                 ))
             }
+
+            // Convert ClassDef fields/annotations/interfaces to Immutable variants
             patched.internClass(ImmutableClassDef(
-                classDef.type, classDef.accessFlags, classDef.superclass, 
+                classDef.type, 
+                classDef.accessFlags, 
+                classDef.superclass, 
                 ImmutableList.copyOf(classDef.interfaces), 
                 classDef.sourceFile, 
-                ImmutableList.copyOf(classDef.annotations), 
-                ImmutableList.copyOf(classDef.staticFields), 
-                ImmutableList.copyOf(classDef.instanceFields), 
-                ImmutableList.copyOf(classDef.directMethods), 
-                patchedMethods
+                ImmutableSet.copyOf(classDef.annotations.map { ImmutableAnnotation.of(it) }), 
+                ImmutableList.copyOf(classDef.staticFields.map { ImmutableField.of(it) }), 
+                ImmutableList.copyOf(classDef.instanceFields.map { ImmutableField.of(it) }), 
+                ImmutableList.copyOf(classDef.directMethods.map { ImmutableMethod.of(it) }), 
+                patchedMethods // The list we manually built above
             ))
         }
+
         val out = File.createTempFile("patched", ".dex")
-        // Fix: Use FileDataStore for writing
+        // Use FileDataStore to write the DexPool to disk
         patched.writeTo(FileDataStore(out))
         return out.readBytes().also { out.delete() }
     }
@@ -124,5 +158,6 @@ object DexPatcher {
         }
         return result
     }
+    
     private fun returnTypeFromDescriptor(descriptor: String): String = descriptor.substringAfter(")")
 }
